@@ -484,6 +484,10 @@ body {
 .panel.error .text-area  { color: var(--error); }
 .panel.error             { border-color: var(--error); }
 
+/* Warning state (symmetric cipher in decrypt mode) */
+.panel.warning           { border-color: #c9920a; }
+.panel.warning .text-area { color: #e0a820; }
+
 /* ============================
    Scrollbar
    ============================ */

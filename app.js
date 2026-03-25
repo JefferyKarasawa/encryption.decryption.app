@@ -37,10 +37,10 @@ const outputPanel    = document.querySelector('.panel-output');
 const CIPHER_INFO = {
   caesar:   'Caesar Cipher shifts each character within its script. Supports Latin (26), Hiragana/Katakana (86), and Kanji (20,992 chars). Non-script characters pass through unchanged.',
   vigenere: 'Vigenere cipher uses a keyword for per-character shifts. Supports Latin, Hiragana, Katakana, and Kanji. The key can mix scripts.',
-  rot13:    'ROT13/ROT43 — rotates Latin letters by 13 (half of 26) and Japanese Hiragana/Katakana by 43 (half of 86). Applying it twice always restores the original.',
+  rot13:    'ROT13/ROT43 — rotates Latin letters by 13 (half of 26) and Japanese Hiragana/Katakana by 43 (half of 86). Symmetric: encrypt and decrypt apply the same transform. Applying it twice always restores the original.',
   base64:   'Base64 encodes binary/text data as ASCII characters using 64 printable symbols. Fully supports Unicode including Japanese. It is an encoding scheme, not a security cipher.',
   xor:      'XOR Cipher applies bitwise XOR between each character code and a repeating hex key. Symmetric — the same key encrypts and decrypts. Works with any Unicode text.',
-  atbash:   'Atbash mirrors each character within its script range (A↔Z, あ↔ん, ア↔ン, etc.). It is its own inverse — the same operation encrypts and decrypts.',
+  atbash:   'Atbash mirrors each character within its script range (A↔Z, あ↔ん, ア↔ン, etc.). Symmetric: the same operation encrypts and decrypts — any input is valid in both modes.',
 };
 
 // ─── Cipher implementations ───────────────────────────────────
@@ -165,6 +165,7 @@ function process() {
   const text = inputText.value;
   let result = '';
   let isError = false;
+  let isWarning = false;
 
   const shift    = Math.max(1, Math.min(85, parseInt(caesarKey.value) || 1));
   const vigKey   = vigenereKey.value;
@@ -179,6 +180,7 @@ function process() {
       break;
     case 'rot13':
       result = rot13(text); // symmetric
+      if (mode === 'decrypt' && text.length > 0) isWarning = true;
       break;
     case 'base64':
       if (mode === 'encrypt') {
@@ -194,16 +196,18 @@ function process() {
       break;
     case 'atbash':
       result = atbash(text); // symmetric
+      if (mode === 'decrypt' && text.length > 0) isWarning = true;
       break;
   }
 
   outputText.value = result;
 
   // Flash output
-  outputPanel.classList.remove('output-flash', 'error');
+  outputPanel.classList.remove('output-flash', 'error', 'warning');
   void outputPanel.offsetWidth; // reflow
-  if (isError) outputPanel.classList.add('error');
-  else         outputPanel.classList.add('output-flash');
+  if (isError)        outputPanel.classList.add('error');
+  else if (isWarning) outputPanel.classList.add('warning');
+  else                outputPanel.classList.add('output-flash');
 
   // Counts
   updateCounts(text, result);
