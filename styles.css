@@ -554,7 +554,7 @@ input, select, textarea {
 .install-banner {
   display: none;
   position: fixed;
-  bottom: calc(60px + env(safe-area-inset-bottom) + 8px);
+  bottom: 16px;
   left: 12px; right: 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -647,6 +647,9 @@ input, select, textarea {
   }
   /* Hide desktop swap in middle — swap is in bottom nav */
   .middle-actions .swap-btn { display: none; }
+
+  /* Push install banner above mobile nav */
+  .install-banner { bottom: calc(60px + env(safe-area-inset-bottom) + 8px); }
 
   /* Info bar compact */
   .info-bar { font-size: 0.75rem; padding: 0.6rem 0.85rem; }

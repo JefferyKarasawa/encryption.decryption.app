@@ -35,38 +35,67 @@ const outputPanel    = document.querySelector('.panel-output');
 
 // ─── Cipher info descriptions ─────────────────────────────────
 const CIPHER_INFO = {
-  caesar:   'Caesar Cipher shifts each letter by a fixed number (1–25) through the alphabet. Non-alphabetic characters are preserved as-is.',
-  vigenere: 'Vigenère Cipher uses a keyword to apply multiple Caesar shifts. Each letter of the key shifts the corresponding plaintext letter.',
-  rot13:    'ROT13 rotates each letter by 13 positions. Applying it twice returns the original text — the same operation encrypts and decrypts.',
-  base64:   'Base64 encodes binary/text data as ASCII characters using 64 printable symbols. It is an encoding scheme, not a security cipher.',
-  xor:      'XOR Cipher applies bitwise XOR between each byte of the message and a repeating hex key. Symmetric — the same key encrypts and decrypts.',
-  atbash:   'Atbash Cipher maps A↔Z, B↔Y, etc. It is its own inverse — decrypting with Atbash uses the same operation as encrypting.',
+  caesar:   'Caesar Cipher shifts each character within its script. Supports Latin (26), Hiragana/Katakana (86), and Kanji (20,992 chars). Non-script characters pass through unchanged.',
+  vigenere: 'Vigenere cipher uses a keyword for per-character shifts. Supports Latin, Hiragana, Katakana, and Kanji. The key can mix scripts.',
+  rot13:    'ROT13/ROT43 — rotates Latin letters by 13 (half of 26) and Japanese Hiragana/Katakana by 43 (half of 86). Applying it twice always restores the original.',
+  base64:   'Base64 encodes binary/text data as ASCII characters using 64 printable symbols. Fully supports Unicode including Japanese. It is an encoding scheme, not a security cipher.',
+  xor:      'XOR Cipher applies bitwise XOR between each character code and a repeating hex key. Symmetric — the same key encrypts and decrypts. Works with any Unicode text.',
+  atbash:   'Atbash mirrors each character within its script range (A↔Z, あ↔ん, ア↔ン, etc.). It is its own inverse — the same operation encrypts and decrypts.',
 };
 
 // ─── Cipher implementations ───────────────────────────────────
 
-/** Rotate a single character within its case range by `shift`. */
+// Script ranges
+const LATIN_LOWER  = [97,  122];   // a-z  (26 chars)
+const LATIN_UPPER  = [65,   90];   // A-Z  (26 chars)
+const HIRAGANA     = [0x3041, 0x3096]; // ぁ-ゖ (86 chars)
+const KATAKANA     = [0x30A1, 0x30F6]; // ァ-ヶ (86 chars)
+const CJK          = [0x4E00, 0x9FFF]; // 一-鿿 (20,992 chars — all common kanji)
+
+const RANGES = [LATIN_LOWER, LATIN_UPPER, HIRAGANA, KATAKANA, CJK];
+
+/** Return [base, size] for a character's script range, or null if not rotatable. */
+function scriptRange(ch) {
+  const c = ch.charCodeAt(0);
+  for (const [start, end] of RANGES) {
+    if (c >= start && c <= end) return [start, end - start + 1];
+  }
+  return null;
+}
+
+/** Rotate ch by shift within its script range. Handles negative shifts. */
 function rotChar(ch, shift) {
-  const base = ch >= 'a' ? 97 : 65;
-  return String.fromCharCode(((ch.charCodeAt(0) - base + shift + 26) % 26) + base);
+  const range = scriptRange(ch);
+  if (!range) return ch;
+  const [base, size] = range;
+  return String.fromCharCode(((ch.charCodeAt(0) - base + shift % size + size) % size) + base);
+}
+
+/** Shift value contributed by a key character (0-based within its script). */
+function keyShift(ch) {
+  const c = ch.charCodeAt(0);
+  for (const [start, end] of RANGES) {
+    if (c >= start && c <= end) return c - start;
+  }
+  return 0;
 }
 
 function caesarEncrypt(text, shift) {
-  return [...text].map(ch => /[a-zA-Z]/.test(ch) ? rotChar(ch, shift) : ch).join('');
+  return [...text].map(ch => scriptRange(ch) ? rotChar(ch, shift) : ch).join('');
 }
 
 function caesarDecrypt(text, shift) {
-  return caesarEncrypt(text, 26 - (shift % 26));
+  return caesarEncrypt(text, -shift);
 }
 
 function vigenereEncrypt(text, key) {
   if (!key) return text;
-  const k = key.toUpperCase().replace(/[^A-Z]/g, '');
-  if (!k.length) return text;
+  const keyChars = [...key].filter(ch => scriptRange(ch));
+  if (!keyChars.length) return text;
   let ki = 0;
   return [...text].map(ch => {
-    if (/[a-zA-Z]/.test(ch)) {
-      const shift = k.charCodeAt(ki % k.length) - 65;
+    if (scriptRange(ch)) {
+      const shift = keyShift(keyChars[ki % keyChars.length]);
       ki++;
       return rotChar(ch, shift);
     }
@@ -76,21 +105,26 @@ function vigenereEncrypt(text, key) {
 
 function vigenereDecrypt(text, key) {
   if (!key) return text;
-  const k = key.toUpperCase().replace(/[^A-Z]/g, '');
-  if (!k.length) return text;
+  const keyChars = [...key].filter(ch => scriptRange(ch));
+  if (!keyChars.length) return text;
   let ki = 0;
   return [...text].map(ch => {
-    if (/[a-zA-Z]/.test(ch)) {
-      const shift = k.charCodeAt(ki % k.length) - 65;
+    if (scriptRange(ch)) {
+      const shift = keyShift(keyChars[ki % keyChars.length]);
       ki++;
-      return rotChar(ch, 26 - shift);
+      return rotChar(ch, -shift);
     }
     return ch;
   }).join('');
 }
 
+/** ROT13 for Latin (half of 26), ROT43 for Hiragana/Katakana (half of 86). Both self-inverse. */
 function rot13(text) {
-  return caesarEncrypt(text, 13);
+  return [...text].map(ch => {
+    const range = scriptRange(ch);
+    if (!range) return ch;
+    return rotChar(ch, range[1] / 2);
+  }).join('');
 }
 
 function base64Encode(text) {
@@ -118,9 +152,11 @@ function xorCipher(text, hexKey) {
 
 function atbash(text) {
   return [...text].map(ch => {
-    if (/[a-z]/.test(ch)) return String.fromCharCode(219 - ch.charCodeAt(0)); // 'a'+('z'-ch)
-    if (/[A-Z]/.test(ch)) return String.fromCharCode(155 - ch.charCodeAt(0)); // 'A'+('Z'-ch)
-    return ch;
+    const range = scriptRange(ch);
+    if (!range) return ch;
+    const [base, size] = range;
+    // mirror: base + (size-1) - (ch - base)  =  base + size - 1 - ch + base
+    return String.fromCharCode(2 * base + size - 1 - ch.charCodeAt(0));
   }).join('');
 }
 
@@ -130,7 +166,7 @@ function process() {
   let result = '';
   let isError = false;
 
-  const shift    = Math.max(1, Math.min(25, parseInt(caesarKey.value) || 1));
+  const shift    = Math.max(1, Math.min(85, parseInt(caesarKey.value) || 1));
   const vigKey   = vigenereKey.value;
   const xorK     = xorKey.value;
 
@@ -195,6 +231,7 @@ function setMode(m) {
   decryptBtn.classList.toggle('active', m === 'decrypt');
   inputTitle.textContent  = m === 'encrypt' ? 'Plaintext'  : 'Ciphertext';
   outputTitle.textContent = m === 'encrypt' ? 'Ciphertext' : 'Plaintext';
+  syncMobileNav();
   process();
 }
 
@@ -209,7 +246,7 @@ function updateKeyUI() {
   switch (cipher) {
     case 'caesar':
       caesarKey.classList.remove('hidden');
-      keyLabel.textContent = 'Shift (1–25)';
+      keyLabel.textContent = 'Shift (1–85)';
       break;
     case 'vigenere':
       vigenereKey.classList.remove('hidden');
@@ -312,8 +349,8 @@ function syncMobileNav() {
   navDecrypt.classList.toggle('active', mode === 'decrypt');
 }
 
-navEncrypt.addEventListener('click', () => { setMode('encrypt'); syncMobileNav(); });
-navDecrypt.addEventListener('click', () => { setMode('decrypt'); syncMobileNav(); });
+navEncrypt.addEventListener('click', () => setMode('encrypt'));
+navDecrypt.addEventListener('click', () => setMode('decrypt'));
 navSwap.addEventListener('click', swap);
 navCopy.addEventListener('click', async () => {
   await copyToClipboard();

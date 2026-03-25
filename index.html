@@ -104,7 +104,7 @@
       <div class="control-group key-group" id="keyGroup">
         <label class="control-label" id="keyLabel">Shift Key</label>
         <div class="key-input-wrap">
-          <input type="number" id="caesarKey" class="key-input" min="1" max="25" value="13" placeholder="1–25" />
+          <input type="number" id="caesarKey" class="key-input" min="1" max="85" value="13" placeholder="1–85" />
           <input type="text"   id="vigenereKey" class="key-input hidden" placeholder="e.g. SECRET" maxlength="64" />
           <input type="text"   id="xorKey" class="key-input hidden" placeholder="hex, e.g. A3F2" maxlength="16" />
           <span class="key-badge hidden" id="noKeyBadge">No key needed</span>
@@ -205,7 +205,7 @@
         <line x1="12" y1="8" x2="12" y2="12"/>
         <line x1="12" y1="16" x2="12.01" y2="16"/>
       </svg>
-      <span id="cipherInfo">Caesar Cipher shifts each letter by a fixed number (1–25) through the alphabet. Non-alphabetic characters are preserved.</span>
+      <span id="cipherInfo">Caesar Cipher shifts each character within its script. Supports Latin (26), Hiragana/Katakana (86), and Kanji (20,992 chars). Non-script characters pass through unchanged.</span>
     </div>
 
     <!-- Footer (desktop only) -->
