@@ -1,0 +1,20 @@
+{
+  "name": "CipherLab",
+  "short_name": "CipherLab",
+  "description": "Dynamic encryption and decryption tool — Caesar, Vigenère, ROT13, Base64, XOR, Atbash",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["utilities", "productivity"],
+  "prefer_related_applications": false
+}
