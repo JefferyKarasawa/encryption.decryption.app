@@ -5,19 +5,19 @@
    ============================================================ */
 :root {
   --bg:           #0d0d0d;
-  --bg-raised:    #111111;
-  --bg-panel:     #111111;
-  --bg-panel-alt: #141414;
+  --bg-raised:    #121212;
+  --bg-panel:     #121212;
+  --bg-panel-alt: #161616;
   --bg-hover:     #1a1a1a;
 
-  --border:       #1e1e1e;
+  --border:       #202020;
   --border-mid:   #2a2a2a;
   --border-focus: #4f7aff;
 
   --accent:       #4f7aff;
   --accent-dim:   #3a5fd6;
 
-  --text-hi:      #e2e2e2;
+  --text-hi:      #d4d4d4;
   --text-mid:     #888888;
   --text-lo:      #444444;
 
@@ -27,7 +27,7 @@
 
   --radius:       6px;
   --radius-sm:    4px;
-  --t:            0.15s ease;
+  --t:            0.18s ease;
 
   --font-mono:    'Geist Mono', 'Cascadia Code', monospace;
   --font-sans:    'Geist', 'Segoe UI', sans-serif;
@@ -54,7 +54,7 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html {
-  font-size: 14px;
+  font-size: 15px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -156,6 +156,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
 }
 
 /* Install Header Button */
@@ -182,7 +184,10 @@ body {
   border-color: var(--text-mid);
 }
 
-.install-header-btn.hidden { display: none; }
+.install-header-btn.hidden { display: none !important; }
+
+/* When visible, ensure it sits inline in the flex row */
+.install-header-btn:not(.hidden) { display: inline-flex; }
 
 /* Theme Toggle */
 .theme-toggle {
@@ -216,7 +221,7 @@ body {
 .controls-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 1.1rem;
   align-items: flex-end;
   background: var(--bg-raised);
   border: 1px solid var(--border);
@@ -233,7 +238,7 @@ body {
 
 .control-label {
   font-family: var(--font-sans);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: var(--text-lo);
   letter-spacing: 0.02em;
@@ -279,6 +284,11 @@ body {
   background: var(--accent-dim);
 }
 
+.mode-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 /* Cipher Select */
 .select-wrap {
   position: relative;
@@ -300,9 +310,10 @@ body {
   min-width: 190px;
 }
 
-.styled-select:focus {
-  outline: none;
-  border-color: var(--border-focus);
+.styled-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--border-mid);
 }
 
 .styled-select:hover { border-color: var(--text-lo); }
@@ -331,9 +342,10 @@ body {
   transition: border-color var(--t);
 }
 
-.key-input:focus {
-  outline: none;
-  border-color: var(--border-focus);
+.key-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--border-mid);
 }
 
 .key-input:hover { border-color: var(--text-lo); }
@@ -377,7 +389,7 @@ body {
   border: 1px solid var(--border);
   overflow: hidden;
   min-height: 380px;
-  transition: border-color var(--t);
+  transition: border-color var(--t), background var(--t);
 }
 
 .panel-input {
@@ -392,6 +404,7 @@ body {
 
 .panel:focus-within {
   border-color: var(--border-mid);
+  background: #141414;
 }
 
 .panel-header {
@@ -441,6 +454,11 @@ body {
   border-color: var(--text-mid);
 }
 
+.action-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .action-btn.success {
   color: var(--success);
   border-color: var(--success);
@@ -450,11 +468,11 @@ body {
   flex: 1;
   background: transparent;
   border: none;
-  padding: 1rem;
+  padding: 1.15rem;
   color: var(--text-hi);
   font-family: var(--font-mono);
-  font-size: 0.88rem;
-  line-height: 1.7;
+  font-size: 0.9rem;
+  line-height: 1.8;
   resize: none;
   outline: none;
   transition: color var(--t);
@@ -467,6 +485,7 @@ body {
 .output-area {
   color: var(--accent);
   cursor: default;
+  transition: color var(--t);
 }
 
 .panel-footer {
@@ -490,7 +509,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.65rem;
-  background: var(--bg-raised);
+  background: var(--bg);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
 }
@@ -514,7 +533,7 @@ body {
   align-items: center;
   justify-content: center;
   color: var(--text-lo);
-  transition: color var(--t), border-color var(--t);
+  transition: color var(--t), border-color var(--t), transform var(--t);
 }
 
 .process-indicator svg { width: 13px; height: 13px; }
@@ -522,32 +541,27 @@ body {
 .process-indicator.active {
   border-color: var(--accent);
   color: var(--accent);
+  transform: scale(1.05);
 }
 
 .swap-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
   background: transparent;
   border: 1px solid var(--border-mid);
   border-radius: var(--radius-sm);
-  padding: 0.35rem 0.5rem;
+  width: 32px;
+  height: 32px;
   color: var(--text-mid);
-  font-family: var(--font-sans);
-  font-size: 0.7rem;
-  font-weight: 500;
   cursor: pointer;
   transition: color var(--t), border-color var(--t);
-  writing-mode: vertical-rl;
-  white-space: nowrap;
-  letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
 
 .swap-btn svg {
-  width: 13px;
-  height: 13px;
-  writing-mode: horizontal-tb;
+  width: 14px;
+  height: 14px;
 }
 
 .swap-btn:hover {
@@ -555,10 +569,20 @@ body {
   border-color: var(--text-mid);
 }
 
+.swap-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 @media (max-width: 768px) {
   .swap-btn {
-    writing-mode: horizontal-ltr;
+    width: auto;
+    height: auto;
     padding: 0.38rem 0.75rem;
+    gap: 0.35rem;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-weight: 500;
   }
 }
 
@@ -576,7 +600,7 @@ body {
   font-family: var(--font-sans);
   font-size: 0.78rem;
   color: var(--text-mid);
-  line-height: 1.55;
+  line-height: 1.6;
   margin-bottom: 0.9rem;
 }
 
@@ -605,11 +629,11 @@ body {
    State animations
    ============================================================ */
 @keyframes flashOutput {
-  0%   { opacity: 0.6; }
+  0%   { opacity: 0.55; }
   100% { opacity: 1; }
 }
 
-.output-flash { animation: flashOutput 0.2s ease; }
+.output-flash { animation: flashOutput 0.3s ease-out; }
 
 .panel.error .text-area { color: var(--error); }
 .panel.error             { border-color: var(--error); }
@@ -620,9 +644,9 @@ body {
 /* ============================================================
    Scrollbar
    ============================================================ */
-::-webkit-scrollbar          { width: 4px; height: 4px; }
+::-webkit-scrollbar          { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track    { background: transparent; }
-::-webkit-scrollbar-thumb    { background: var(--border-mid); border-radius: 2px; }
+::-webkit-scrollbar-thumb    { background: #333; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-lo); }
 
 /* ============================================================
@@ -673,13 +697,14 @@ input, select, textarea {
   font-weight: 500;
   cursor: pointer;
   padding: 8px 4px 4px;
-  transition: color var(--t);
+  transition: color var(--t), background var(--t);
   -webkit-tap-highlight-color: transparent;
   min-width: 44px;
+  min-height: 44px;
 }
 
 .nav-btn svg { width: 20px; height: 20px; }
-.nav-btn.active { color: var(--accent); }
+.nav-btn.active { color: var(--accent); background: rgba(79, 122, 255, 0.08); }
 .nav-btn:active { background: var(--bg-hover); }
 .nav-btn.copied { color: var(--success); }
 
@@ -832,6 +857,5 @@ input, select, textarea {
 
   .middle-actions .swap-btn {
     display: flex;
-    writing-mode: vertical-rl;
   }
 }
