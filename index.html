@@ -7,13 +7,15 @@
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0f1117" id="themeColor" />
+  <meta name="theme-color" content="#080809" id="themeColor" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="CipherLab" />
   <link rel="apple-touch-icon" href="icon.svg" />
 
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -27,7 +29,7 @@
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
-          <span class="logo-text">CipherLab</span>
+          <span class="logo-text">Cipher<span>Lab</span></span>
         </div>
         <span class="tagline">Encryption &amp; Decryption Tool</span>
       </div>
@@ -200,17 +202,12 @@
 
     <!-- Info Bar -->
     <div class="info-bar" id="infoBar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
       <span id="cipherInfo">Caesar Cipher shifts each character within its script. Supports Latin (26), Hiragana/Katakana (86), and Kanji (20,992 chars). Non-script characters pass through unchanged.</span>
     </div>
 
     <!-- Footer (desktop only) -->
     <footer class="app-footer">
-      <span>CipherLab — All processing is done locally. Nothing is sent to any server.</span>
+      <span>// All processing is client-side. No data transmitted.</span>
     </footer>
 
   </div>

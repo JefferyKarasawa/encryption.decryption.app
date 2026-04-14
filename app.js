@@ -128,13 +128,17 @@ function rot13(text) {
 }
 
 function base64Encode(text) {
-  try { return btoa(unescape(encodeURIComponent(text))); }
-  catch { return ''; }
+  try {
+    const bytes = new TextEncoder().encode(text);
+    return btoa(String.fromCharCode(...bytes));
+  } catch { return ''; }
 }
 
 function base64Decode(text) {
-  try { return decodeURIComponent(escape(atob(text.trim()))); }
-  catch { return null; } // signals invalid input
+  try {
+    const bytes = Uint8Array.from(atob(text.trim()), c => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  } catch { return null; } // signals invalid input
 }
 
 function xorCipher(text, hexKey) {
@@ -161,8 +165,14 @@ function atbash(text) {
 }
 
 // ─── Core process function ────────────────────────────────────
+const MAX_INPUT = 500_000; // ~500 KB — prevent main-thread hang
+
 function process() {
   const text = inputText.value;
+  if (text.length > MAX_INPUT) {
+    outputText.value = '⚠ Input too large (max 500 KB)';
+    return;
+  }
   let result = '';
   let isError = false;
   let isWarning = false;
@@ -272,7 +282,7 @@ function updateKeyUI() {
 function syncThemeColor() {
   const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
   const meta = document.getElementById('themeColor');
-  if (meta) meta.setAttribute('content', isDark ? '#0f1117' : '#f0f2f8');
+  if (meta) meta.setAttribute('content', isDark ? '#080809' : '#f2ede4');
 }
 
 // ─── Theme toggle ─────────────────────────────────────────────
@@ -402,7 +412,7 @@ window.addEventListener('appinstalled', hideInstallUI);
 // ─── Service Worker ───────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW registration failed:', err));
   });
 }
 
