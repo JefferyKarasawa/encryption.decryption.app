@@ -282,7 +282,7 @@ function updateKeyUI() {
 function syncThemeColor() {
   const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
   const meta = document.getElementById('themeColor');
-  if (meta) meta.setAttribute('content', isDark ? '#080809' : '#f2ede4');
+  if (meta) meta.setAttribute('content', isDark ? '#0d0d0d' : '#f9f8f6');
 }
 
 // ─── Theme toggle ─────────────────────────────────────────────
