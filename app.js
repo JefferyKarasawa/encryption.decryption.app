@@ -308,7 +308,7 @@ function columnarDecrypt(text, key) {
   // Assign lengths: last `shortCols` columns in sorted order get rows-1
   const lengths = new Array(cols);
   for (let i = 0; i < cols; i++) {
-    lengths[order[i].origIdx] = (i >= cols - shortCols) ? rows - 1 : rows;
+    lengths[order[i].origIdx] = (order[i].origIdx >= cols - shortCols) ? rows - 1 : rows;
   }
   // Slice text into sorted columns
   const sortedCols = [];
