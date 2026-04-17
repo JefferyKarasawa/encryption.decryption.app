@@ -509,8 +509,7 @@ function process() {
         : columnarDecrypt(text, columnarK);
       break;
     case 'beaufort':
-      result = beaufort(text, beaufortK);
-      if (mode === 'decrypt' && text.length > 0) isWarning = true;
+      result = beaufort(text, beaufortK); // reciprocal — no warning needed
       break;
     case 'aes256gcm':
       processAES();
@@ -728,7 +727,7 @@ if (beaufortKey)  beaufortKey.addEventListener('input', process);
 if (aesPasswordEl) {
   aesPasswordEl.addEventListener('input', () => { updatePasswordStrength(); process(); });
 }
-if (aesToggleBtn) {
+if (aesToggleBtn && aesPasswordEl) {
   aesToggleBtn.addEventListener('click', () => {
     const isHidden = aesPasswordEl.type === 'password';
     aesPasswordEl.type = isHidden ? 'text' : 'password';
