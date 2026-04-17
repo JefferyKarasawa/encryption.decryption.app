@@ -16,6 +16,14 @@ const caesarKey      = document.getElementById('caesarKey');
 const vigenereKey    = document.getElementById('vigenereKey');
 const xorKey         = document.getElementById('xorKey');
 const noKeyBadge     = document.getElementById('noKeyBadge');
+const playfairKey    = document.getElementById('playfairKey');
+const railKey        = document.getElementById('railKey');
+const columnarKey    = document.getElementById('columnarKey');
+const beaufortKey    = document.getElementById('beaufortKey');
+const aesKeyWrap     = document.getElementById('aesKeyWrap');
+const aesPasswordEl  = document.getElementById('aesPassword');
+const aesToggleBtn   = document.getElementById('aesToggleBtn');
+const aesStrengthBar = document.getElementById('aesStrengthBar');
 const keyLabel       = document.getElementById('keyLabel');
 const encryptBtn     = document.getElementById('encryptBtn');
 const decryptBtn     = document.getElementById('decryptBtn');
@@ -35,12 +43,17 @@ const outputPanel    = document.querySelector('.panel-output');
 
 // ─── Cipher info descriptions ─────────────────────────────────
 const CIPHER_INFO = {
-  caesar:   'Caesar Cipher shifts each character within its script. Supports Latin (26), Hiragana/Katakana (86), and Kanji (20,992 chars). Non-script characters pass through unchanged.',
-  vigenere: 'Vigenere cipher uses a keyword for per-character shifts. Supports Latin, Hiragana, Katakana, and Kanji. The key can mix scripts.',
-  rot13:    'ROT13/ROT43 — rotates Latin letters by 13 (half of 26) and Japanese Hiragana/Katakana by 43 (half of 86). Symmetric: encrypt and decrypt apply the same transform. Applying it twice always restores the original.',
-  base64:   'Base64 encodes binary/text data as ASCII characters using 64 printable symbols. Fully supports Unicode including Japanese. It is an encoding scheme, not a security cipher.',
-  xor:      'XOR Cipher applies bitwise XOR between each character code and a repeating hex key. Symmetric — the same key encrypts and decrypts. Works with any Unicode text.',
-  atbash:   'Atbash mirrors each character within its script range (A↔Z, あ↔ん, ア↔ン, etc.). Symmetric: the same operation encrypts and decrypts — any input is valid in both modes.',
+  caesar:    'Caesar Cipher shifts each character within its script. Supports Latin (26), Hiragana/Katakana (86), and Kanji (20,992 chars). Non-script characters pass through unchanged.',
+  vigenere:  'Vigenere cipher uses a keyword for per-character shifts. Supports Latin, Hiragana, Katakana, and Kanji. The key can mix scripts.',
+  rot13:     'ROT13/ROT43 — rotates Latin letters by 13 (half of 26) and Japanese Hiragana/Katakana by 43 (half of 86). Symmetric: encrypt and decrypt apply the same transform.',
+  base64:    'Base64 encodes binary/text data as ASCII characters using 64 printable symbols. Fully supports Unicode including Japanese. It is an encoding scheme, not a security cipher.',
+  xor:       'XOR Cipher applies bitwise XOR between each character code and a repeating hex key. Symmetric — the same key encrypts and decrypts.',
+  atbash:    'Atbash mirrors each character within its script range (A↔Z, あ↔ん, ア↔ン, etc.). Symmetric: the same operation encrypts and decrypts.',
+  playfair:  'Playfair uses a 5×5 keyword grid for bigram substitution. J is merged into I. Non-Latin characters pass through unchanged. Odd-length input is padded with X.',
+  railfence: 'Rail Fence writes text diagonally across N rails, then reads row by row. Key is the number of rails (2–10). Works on any Unicode text.',
+  columnar:  'Columnar Transposition writes text in rows, then reads columns in keyword-alphabetical order. Non-alphabetic key characters are ignored.',
+  beaufort:  'Beaufort cipher: ciphertext = (key − plaintext) mod 26. Reciprocal — the same key and operation both encrypts and decrypts. Latin only.',
+  aes256gcm: 'AES-256-GCM with PBKDF2 key derivation (310,000 iterations, SHA-256). Authenticated encryption — wrong passwords are detected. 100% local processing.',
 };
 
 // ─── Cipher implementations ───────────────────────────────────
@@ -445,9 +458,13 @@ function process() {
   let isError = false;
   let isWarning = false;
 
-  const shift    = Math.max(1, Math.min(85, parseInt(caesarKey.value) || 1));
-  const vigKey   = vigenereKey.value;
-  const xorK     = xorKey.value;
+  const shift      = Math.max(1, Math.min(85, parseInt(caesarKey.value) || 1));
+  const vigKey     = vigenereKey.value;
+  const xorK       = xorKey.value;
+  const playfairK  = playfairKey  ? playfairKey.value  : '';
+  const railN      = railKey      ? parseInt(railKey.value) || 2 : 2;
+  const columnarK  = columnarKey  ? columnarKey.value  : '';
+  const beaufortK  = beaufortKey  ? beaufortKey.value  : '';
 
   switch (cipher) {
     case 'caesar':
@@ -457,7 +474,7 @@ function process() {
       result = mode === 'encrypt' ? vigenereEncrypt(text, vigKey) : vigenereDecrypt(text, vigKey);
       break;
     case 'rot13':
-      result = rot13(text); // symmetric
+      result = rot13(text);
       if (mode === 'decrypt' && text.length > 0) isWarning = true;
       break;
     case 'base64':
@@ -470,28 +487,105 @@ function process() {
       }
       break;
     case 'xor':
-      result = xorCipher(text, xorK); // symmetric
+      result = xorCipher(text, xorK);
       break;
     case 'atbash':
-      result = atbash(text); // symmetric
+      result = atbash(text);
       if (mode === 'decrypt' && text.length > 0) isWarning = true;
       break;
+    case 'playfair':
+      result = mode === 'encrypt'
+        ? playfairEncrypt(text, playfairK)
+        : playfairDecrypt(text, playfairK);
+      break;
+    case 'railfence':
+      result = mode === 'encrypt'
+        ? railFenceEncrypt(text, railN)
+        : railFenceDecrypt(text, railN);
+      break;
+    case 'columnar':
+      result = mode === 'encrypt'
+        ? columnarEncrypt(text, columnarK)
+        : columnarDecrypt(text, columnarK);
+      break;
+    case 'beaufort':
+      result = beaufort(text, beaufortK);
+      if (mode === 'decrypt' && text.length > 0) isWarning = true;
+      break;
+    case 'aes256gcm':
+      processAES();
+      return;
   }
 
   outputText.value = result;
+  flashOutput(isError, isWarning);
+  updateCounts(text, result);
+  processIndicator.classList.toggle('active', text.length > 0);
+}
 
-  // Flash output
+// ─── AES async handler ────────────────────────────────────────
+async function processAES() {
+  const text = inputText.value;
+  const password = aesPasswordEl ? aesPasswordEl.value : '';
+  if (!text) { outputText.value = ''; updateCounts('', ''); return; }
+  if (!password) { outputText.value = ''; updateCounts(text, ''); return; }
+
+  processIndicator.classList.add('spinning');
+  outputText.value = '⟳ Processing…';
+
+  try {
+    const result = mode === 'encrypt'
+      ? await aesEncrypt(text, password)
+      : await aesDecrypt(text, password);
+    outputText.value = result;
+    flashOutput(false, false);
+    updateCounts(text, result);
+  } catch (err) {
+    let msg;
+    if (err.message === 'NO_SECURE_CONTEXT') msg = '⚠ AES requires a secure context (HTTPS or localhost)';
+    else if (err.message === 'WRONG_PASSWORD') msg = '⚠ Decryption failed — wrong password or corrupted data';
+    else msg = '⚠ Invalid AES input';
+    outputText.value = msg;
+    flashOutput(true, false);
+    updateCounts(text, msg);
+  } finally {
+    processIndicator.classList.remove('spinning');
+    processIndicator.classList.toggle('active', text.length > 0);
+  }
+}
+
+// ─── Output flash helper ──────────────────────────────────────
+function flashOutput(isError, isWarning) {
   outputPanel.classList.remove('output-flash', 'error', 'warning');
-  void outputPanel.offsetWidth; // reflow
+  void outputPanel.offsetWidth;
   if (isError)        outputPanel.classList.add('error');
   else if (isWarning) outputPanel.classList.add('warning');
   else                outputPanel.classList.add('output-flash');
+}
 
-  // Counts
-  updateCounts(text, result);
+// ─── Password strength ────────────────────────────────────────
+function passwordEntropy(pwd) {
+  if (!pwd) return 0;
+  let pool = 0;
+  if (/[a-z]/.test(pwd)) pool += 26;
+  if (/[A-Z]/.test(pwd)) pool += 26;
+  if (/[0-9]/.test(pwd)) pool += 10;
+  if (/[^a-zA-Z0-9]/.test(pwd)) pool += 32;
+  return Math.round(pwd.length * Math.log2(pool || 1));
+}
 
-  // Indicator
-  processIndicator.classList.toggle('active', text.length > 0);
+function updatePasswordStrength() {
+  if (!aesStrengthBar) return;
+  const entropy = passwordEntropy(aesPasswordEl ? aesPasswordEl.value : '');
+  const segments = aesStrengthBar.querySelectorAll('.strength-seg');
+  let level = 0;
+  if (entropy >= 28) level = 1;
+  if (entropy >= 50) level = 2;
+  if (entropy >= 72) level = 3;
+  if (entropy >= 96) level = 4;
+  segments.forEach((seg, i) => {
+    seg.className = 'strength-seg' + (i < level ? ` level-${level}` : '');
+  });
 }
 
 // ─── Count helpers ────────────────────────────────────────────
@@ -519,28 +613,52 @@ function setMode(m) {
 
 // ─── Cipher select ────────────────────────────────────────────
 function updateKeyUI() {
-  // Hide all key inputs
   caesarKey.classList.add('hidden');
   vigenereKey.classList.add('hidden');
   xorKey.classList.add('hidden');
   noKeyBadge.classList.add('hidden');
+  if (playfairKey)  playfairKey.classList.add('hidden');
+  if (railKey)      railKey.classList.add('hidden');
+  if (columnarKey)  columnarKey.classList.add('hidden');
+  if (beaufortKey)  beaufortKey.classList.add('hidden');
+  if (aesKeyWrap)   aesKeyWrap.classList.add('hidden');
 
   switch (cipher) {
     case 'caesar':
       caesarKey.classList.remove('hidden');
-      keyLabel.textContent = 'Shift (1–85)';
+      keyLabel.textContent = 'SHIFT (1–85)';
       break;
     case 'vigenere':
       vigenereKey.classList.remove('hidden');
-      keyLabel.textContent = 'Keyword';
+      keyLabel.textContent = 'KEYWORD';
       break;
     case 'xor':
       xorKey.classList.remove('hidden');
-      keyLabel.textContent = 'Hex Key';
+      keyLabel.textContent = 'HEX KEY';
+      break;
+    case 'playfair':
+      if (playfairKey) playfairKey.classList.remove('hidden');
+      keyLabel.textContent = 'KEYWORD';
+      break;
+    case 'railfence':
+      if (railKey) railKey.classList.remove('hidden');
+      keyLabel.textContent = 'RAILS (2–10)';
+      break;
+    case 'columnar':
+      if (columnarKey) columnarKey.classList.remove('hidden');
+      keyLabel.textContent = 'KEYWORD';
+      break;
+    case 'beaufort':
+      if (beaufortKey) beaufortKey.classList.remove('hidden');
+      keyLabel.textContent = 'KEYWORD';
+      break;
+    case 'aes256gcm':
+      if (aesKeyWrap) aesKeyWrap.classList.remove('hidden');
+      keyLabel.textContent = 'PASSWORD';
       break;
     default:
       noKeyBadge.classList.remove('hidden');
-      keyLabel.textContent = 'Key';
+      keyLabel.textContent = 'KEY';
   }
 
   cipherInfoEl.textContent = CIPHER_INFO[cipher] || '';
@@ -603,6 +721,20 @@ cipherSelect.addEventListener('change', () => {
 caesarKey.addEventListener('input', process);
 vigenereKey.addEventListener('input', process);
 xorKey.addEventListener('input', process);
+if (playfairKey)  playfairKey.addEventListener('input', process);
+if (railKey)      railKey.addEventListener('input', process);
+if (columnarKey)  columnarKey.addEventListener('input', process);
+if (beaufortKey)  beaufortKey.addEventListener('input', process);
+if (aesPasswordEl) {
+  aesPasswordEl.addEventListener('input', () => { updatePasswordStrength(); process(); });
+}
+if (aesToggleBtn) {
+  aesToggleBtn.addEventListener('click', () => {
+    const isHidden = aesPasswordEl.type === 'password';
+    aesPasswordEl.type = isHidden ? 'text' : 'password';
+    aesToggleBtn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+  });
+}
 
 encryptBtn.addEventListener('click', () => setMode('encrypt'));
 decryptBtn.addEventListener('click', () => setMode('decrypt'));
@@ -690,9 +822,21 @@ if ('serviceWorker' in navigator) {
   const saved = localStorage.getItem('cipherlab-theme');
   if (saved) document.documentElement.setAttribute('data-theme', saved);
 
-  cipher = cipherSelect.value;
+  const activeSidebarItem = document.querySelector('.cipher-item.active');
+  cipher = activeSidebarItem ? activeSidebarItem.dataset.cipher : (cipherSelect ? cipherSelect.value : 'caesar');
   updateKeyUI();
   process();
   syncMobileNav();
   syncThemeColor();
+
+  // Wire sidebar cipher items
+  document.querySelectorAll('.cipher-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.cipher-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      cipher = item.dataset.cipher;
+      updateKeyUI();
+      process();
+    });
+  });
 })();
