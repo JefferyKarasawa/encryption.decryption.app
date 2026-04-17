@@ -385,7 +385,9 @@ async function aesEncrypt(text, password) {
   combined.set(salt, 0);
   combined.set(iv, salt.length);
   combined.set(new Uint8Array(cipherBuf), salt.length + iv.length);
-  return btoa(String.fromCharCode(...combined));
+  let binary = '';
+  combined.forEach(b => { binary += String.fromCharCode(b); });
+  return btoa(binary);
 }
 
 async function aesDecrypt(b64, password) {
@@ -397,7 +399,7 @@ async function aesDecrypt(b64, password) {
   }
   let bytes;
   try {
-    bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    bytes = Uint8Array.from(atob(b64.trim()), c => c.charCodeAt(0));
   } catch {
     throw new Error('INVALID_INPUT');
   }
