@@ -1,5 +1,5 @@
 /* CipherLab Service Worker — offline-first cache */
-const CACHE  = 'cipherlab-v2';
+const CACHE  = 'cipherlab-v3';
 const ASSETS = [
   './',
   './index.html',
