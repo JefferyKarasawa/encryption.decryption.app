@@ -1,6 +1,6 @@
 /* ============================================================
    CipherLab — app.js
-   Dynamic encrypt / decrypt with 6 cipher algorithms.
+   Dynamic encrypt / decrypt with 11 cipher algorithms.
    All processing is client-side only.
    ============================================================ */
 
@@ -11,7 +11,6 @@ let cipher = 'caesar';
 // ─── DOM refs ────────────────────────────────────────────────
 const inputText      = document.getElementById('inputText');
 const outputText     = document.getElementById('outputText');
-const cipherSelect   = document.getElementById('cipherSelect');
 const caesarKey      = document.getElementById('caesarKey');
 const vigenereKey    = document.getElementById('vigenereKey');
 const xorKey         = document.getElementById('xorKey');
@@ -38,6 +37,7 @@ const outputWordCount = document.getElementById('outputWordCount');
 const inputTitle     = document.getElementById('inputTitle');
 const outputTitle    = document.getElementById('outputTitle');
 const processIndicator = document.getElementById('processIndicator');
+const modeUnderline  = document.getElementById('modeUnderline');
 const cipherInfoEl   = document.getElementById('cipherInfo');
 const outputPanel    = document.querySelector('.panel-output');
 
@@ -143,7 +143,7 @@ function rot13(text) {
 function base64Encode(text) {
   try {
     const bytes = new TextEncoder().encode(text);
-    return btoa(String.fromCharCode(...bytes));
+    return btoa(Array.from(bytes, b => String.fromCharCode(b)).join(''));
   } catch { return ''; }
 }
 
@@ -398,9 +398,7 @@ async function aesEncrypt(text, password) {
   combined.set(salt, 0);
   combined.set(iv, salt.length);
   combined.set(new Uint8Array(cipherBuf), salt.length + iv.length);
-  let binary = '';
-  combined.forEach(b => { binary += String.fromCharCode(b); });
-  return btoa(binary);
+  return btoa(Array.from(combined, b => String.fromCharCode(b)).join(''));
 }
 
 async function aesDecrypt(b64, password) {
@@ -523,12 +521,19 @@ function process() {
 }
 
 // ─── AES async handler ────────────────────────────────────────
+let _aesVersion = 0; // incremented each call; stale completions are discarded
+
 async function processAES() {
   const text = inputText.value;
   const password = aesPasswordEl ? aesPasswordEl.value : '';
-  if (!text) { outputText.value = ''; updateCounts('', ''); return; }
+  if (!text) { outputText.value = ''; updateCounts('', ''); outputPanel.classList.remove('has-output'); return; }
   if (!password) { outputText.value = ''; updateCounts(text, ''); return; }
+  if (text.length > MAX_INPUT) {
+    outputText.value = '⚠ Input too large (max 500 KB)';
+    return;
+  }
 
+  const myVersion = ++_aesVersion;
   processIndicator.classList.add('spinning');
   outputText.value = '⟳ Processing…';
 
@@ -536,10 +541,12 @@ async function processAES() {
     const result = mode === 'encrypt'
       ? await aesEncrypt(text, password)
       : await aesDecrypt(text, password);
+    if (myVersion !== _aesVersion) return; // stale — a newer call supersedes this one
     outputText.value = result;
     flashOutput(false, false);
     updateCounts(text, result);
   } catch (err) {
+    if (myVersion !== _aesVersion) return;
     let msg;
     if (err.message === 'NO_SECURE_CONTEXT') msg = '⚠ AES requires a secure context (HTTPS or localhost)';
     else if (err.message === 'WRONG_PASSWORD') msg = '⚠ Decryption failed — wrong password or corrupted data';
@@ -548,8 +555,10 @@ async function processAES() {
     flashOutput(true, false);
     updateCounts(text, msg);
   } finally {
-    processIndicator.classList.remove('spinning');
-    processIndicator.classList.toggle('active', text.length > 0);
+    if (myVersion === _aesVersion) {
+      processIndicator.classList.remove('spinning');
+      processIndicator.classList.toggle('active', text.length > 0);
+    }
   }
 }
 
@@ -607,7 +616,6 @@ function setMode(m) {
   decryptBtn.classList.toggle('active', m === 'decrypt');
   inputTitle.textContent  = m === 'encrypt' ? '── PLAINTEXT ──'  : '── CIPHERTEXT ──';
   outputTitle.textContent = m === 'encrypt' ? '── CIPHERTEXT ──' : '── PLAINTEXT ──';
-  const modeUnderline = document.getElementById('modeUnderline');
   if (modeUnderline) {
     modeUnderline.style.transform = m === 'encrypt' ? 'translateX(0)' : 'translateX(100%)';
   }
@@ -716,14 +724,6 @@ async function copyToClipboard() {
 // ─── Event Listeners ─────────────────────────────────────────
 inputText.addEventListener('input', process);
 
-if (cipherSelect) {
-  cipherSelect.addEventListener('change', () => {
-    cipher = cipherSelect.value;
-    updateKeyUI();
-    process();
-  });
-}
-
 caesarKey.addEventListener('input', process);
 vigenereKey.addEventListener('input', process);
 xorKey.addEventListener('input', process);
@@ -750,6 +750,7 @@ clearBtn.addEventListener('click', () => {
   outputText.value = '';
   updateCounts('', '');
   processIndicator.classList.remove('active');
+  outputPanel.classList.remove('has-output');
   inputText.focus();
 });
 
@@ -829,7 +830,7 @@ if ('serviceWorker' in navigator) {
   if (saved) document.documentElement.setAttribute('data-theme', saved);
 
   const activeSidebarItem = document.querySelector('.cipher-item.active');
-  cipher = activeSidebarItem ? activeSidebarItem.dataset.cipher : (cipherSelect ? cipherSelect.value : 'caesar');
+  cipher = activeSidebarItem ? activeSidebarItem.dataset.cipher : 'caesar';
   updateKeyUI();
   process();
   syncMobileNav();
