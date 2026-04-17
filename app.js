@@ -354,6 +354,82 @@ function beaufort(text, key) {
   }).join('');
 }
 
+// ─── AES-256-GCM ─────────────────────────────────────────────
+async function aesEncrypt(text, password) {
+  if (!window.crypto || !window.crypto.subtle) {
+    throw new Error('NO_SECURE_CONTEXT');
+  }
+  if (!text || !password) {
+    throw new Error('INVALID_INPUT');
+  }
+  const enc = new TextEncoder();
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const iv   = window.crypto.getRandomValues(new Uint8Array(12));
+  const keyMaterial = await window.crypto.subtle.importKey(
+    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+  );
+  const key = await window.crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 310000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt']
+  );
+  const cipherBuf = await window.crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    enc.encode(text)
+  );
+  // Output: base64(salt[16] || iv[12] || ciphertext+tag[16])
+  const combined = new Uint8Array(salt.length + iv.length + cipherBuf.byteLength);
+  combined.set(salt, 0);
+  combined.set(iv, salt.length);
+  combined.set(new Uint8Array(cipherBuf), salt.length + iv.length);
+  return btoa(String.fromCharCode(...combined));
+}
+
+async function aesDecrypt(b64, password) {
+  if (!window.crypto || !window.crypto.subtle) {
+    throw new Error('NO_SECURE_CONTEXT');
+  }
+  if (!b64 || !password) {
+    throw new Error('INVALID_INPUT');
+  }
+  let bytes;
+  try {
+    bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  } catch {
+    throw new Error('INVALID_INPUT');
+  }
+  if (bytes.length < 28 + 16) { // salt(16) + iv(12) + tag(16) minimum
+    throw new Error('INVALID_INPUT');
+  }
+  const salt = bytes.slice(0, 16);
+  const iv   = bytes.slice(16, 28);
+  const data = bytes.slice(28);
+  const enc = new TextEncoder();
+  const keyMaterial = await window.crypto.subtle.importKey(
+    'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+  );
+  const key = await window.crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 310000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['decrypt']
+  );
+  try {
+    const plainBuf = await window.crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      data
+    );
+    return new TextDecoder().decode(plainBuf);
+  } catch {
+    throw new Error('WRONG_PASSWORD');
+  }
+}
+
 // ─── Core process function ────────────────────────────────────
 const MAX_INPUT = 500_000; // ~500 KB — prevent main-thread hang
 
