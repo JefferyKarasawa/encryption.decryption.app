@@ -560,6 +560,7 @@ function flashOutput(isError, isWarning) {
   if (isError)        outputPanel.classList.add('error');
   else if (isWarning) outputPanel.classList.add('warning');
   else                outputPanel.classList.add('output-flash');
+  outputPanel.classList.toggle('has-output', outputText.value.length > 0);
 }
 
 // ─── Password strength ────────────────────────────────────────
