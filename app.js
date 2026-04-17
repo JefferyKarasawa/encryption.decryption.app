@@ -164,6 +164,191 @@ function atbash(text) {
   }).join('');
 }
 
+// ─── Playfair ─────────────────────────────────────────────────
+function playfairBuildGrid(key) {
+  const seen = new Set();
+  const grid = [];
+  const clean = (key.toUpperCase() + 'ABCDEFGHIKLMNOPQRSTUVWXYZ').replace(/[^A-Z]/g, '');
+  for (const ch of clean) {
+    const c = ch === 'J' ? 'I' : ch;
+    if (!seen.has(c)) { seen.add(c); grid.push(c); }
+  }
+  return grid; // 25 chars, 5×5
+}
+
+function playfairPos(grid, ch) {
+  const idx = grid.indexOf(ch === 'J' ? 'I' : ch);
+  return [Math.floor(idx / 5), idx % 5];
+}
+
+function playfairProcess(text, key, encrypt) {
+  const grid = playfairBuildGrid(key || 'KEY');
+  const dir = encrypt ? 1 : -1;
+  // Extract latin letters only, remember positions of non-latin for reinsertion
+  const positions = []; // {idx, ch} for non-latin chars in original text
+  const letters = [];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i].toUpperCase();
+    if (/[A-Z]/.test(ch)) {
+      letters.push(ch === 'J' ? 'I' : ch);
+    } else {
+      positions.push({ idx: i, ch: text[i] });
+    }
+  }
+  // Pad bigrams
+  const bigrams = [];
+  let i = 0;
+  while (i < letters.length) {
+    const a = letters[i];
+    const b = letters[i + 1];
+    if (b === undefined) { bigrams.push([a, 'X']); i++; }
+    else if (a === b)    { bigrams.push([a, 'X']); i++; }
+    else                 { bigrams.push([a, b]);   i += 2; }
+  }
+  // Encipher bigrams
+  const result = [];
+  for (const [a, b] of bigrams) {
+    const [ar, ac] = playfairPos(grid, a);
+    const [br, bc] = playfairPos(grid, b);
+    let ca, cb;
+    if (ar === br) {
+      ca = grid[ar * 5 + ((ac + dir + 5) % 5)];
+      cb = grid[br * 5 + ((bc + dir + 5) % 5)];
+    } else if (ac === bc) {
+      ca = grid[((ar + dir + 5) % 5) * 5 + ac];
+      cb = grid[((br + dir + 5) % 5) * 5 + bc];
+    } else {
+      ca = grid[ar * 5 + bc];
+      cb = grid[br * 5 + ac];
+    }
+    result.push(ca, cb);
+  }
+  // Restore original case and reinsert non-latin chars
+  const latinOut = result.map((ch, idx) => {
+    const orig = letters[idx];
+    return orig && orig === orig.toLowerCase() ? ch.toLowerCase() : ch;
+  });
+  // Reinsert non-latin at original positions (adjusted for padding)
+  // Non-latin chars are appended at end since padding shifts indices
+  return latinOut.join('') + positions.map(p => p.ch).join('');
+}
+
+function playfairEncrypt(text, key) { return playfairProcess(text, key, true); }
+function playfairDecrypt(text, key) { return playfairProcess(text, key, false); }
+
+// ─── Rail Fence ───────────────────────────────────────────────
+function railFenceEncrypt(text, rails) {
+  rails = Math.max(2, Math.min(10, rails));
+  if (rails >= text.length) return text;
+  const fence = Array.from({ length: rails }, () => []);
+  let rail = 0, dir = 1;
+  for (const ch of text) {
+    fence[rail].push(ch);
+    if (rail === 0) dir = 1;
+    else if (rail === rails - 1) dir = -1;
+    rail += dir;
+  }
+  return fence.flat().join('');
+}
+
+function railFenceDecrypt(text, rails) {
+  rails = Math.max(2, Math.min(10, rails));
+  if (rails >= text.length) return text;
+  const len = text.length;
+  const indices = new Array(len);
+  let rail = 0, dir = 1;
+  for (let i = 0; i < len; i++) {
+    indices[i] = rail;
+    if (rail === 0) dir = 1;
+    else if (rail === rails - 1) dir = -1;
+    rail += dir;
+  }
+  // Count chars per rail
+  const counts = new Array(rails).fill(0);
+  for (const r of indices) counts[r]++;
+  // Slice text into rail rows
+  const rows = [];
+  let pos = 0;
+  for (const c of counts) { rows.push([...text.slice(pos, pos + c)]); pos += c; }
+  // Read off by original order
+  const rowIdx = new Array(rails).fill(0);
+  return indices.map(r => rows[r][rowIdx[r]++]).join('');
+}
+
+// ─── Columnar Transposition ───────────────────────────────────
+function columnarEncrypt(text, key) {
+  const k = (key || '').replace(/[^a-zA-Z]/g, '').toUpperCase();
+  if (!k) return text;
+  const cols = k.length;
+  const rows = Math.ceil(text.length / cols);
+  // Pad with null char to fill grid
+  const padded = text.padEnd(rows * cols, '\0');
+  // Build columns
+  const grid = [];
+  for (let c = 0; c < cols; c++) {
+    const col = [];
+    for (let r = 0; r < rows; r++) col.push(padded[r * cols + c]);
+    grid.push({ char: k[c], col, origIdx: c });
+  }
+  // Sort by key character, stable (preserve original order for ties)
+  grid.sort((a, b) => a.char < b.char ? -1 : a.char > b.char ? 1 : a.origIdx - b.origIdx);
+  return grid.flatMap(g => g.col).filter(c => c !== '\0').join('');
+}
+
+function columnarDecrypt(text, key) {
+  const k = (key || '').replace(/[^a-zA-Z]/g, '').toUpperCase();
+  if (!k) return text;
+  const cols = k.length;
+  const rows = Math.ceil(text.length / cols);
+  const totalCells = rows * cols;
+  const shortCols = totalCells - text.length; // number of columns with rows-1 chars
+  // Build sorted order
+  const order = [...k].map((char, origIdx) => ({ char, origIdx }));
+  order.sort((a, b) => a.char < b.char ? -1 : a.char > b.char ? 1 : a.origIdx - b.origIdx);
+  // Assign lengths: last `shortCols` columns in sorted order get rows-1
+  const lengths = new Array(cols);
+  for (let i = 0; i < cols; i++) {
+    lengths[order[i].origIdx] = (i >= cols - shortCols) ? rows - 1 : rows;
+  }
+  // Slice text into sorted columns
+  const sortedCols = [];
+  let pos = 0;
+  for (const { origIdx } of order) {
+    const len = lengths[origIdx];
+    sortedCols.push({ origIdx, chars: [...text.slice(pos, pos + len)] });
+    pos += len;
+  }
+  // Reorder back to original column positions
+  const cols2 = new Array(cols);
+  for (const { origIdx, chars } of sortedCols) cols2[origIdx] = chars;
+  // Read row by row
+  const result = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (cols2[c][r] !== undefined) result.push(cols2[c][r]);
+    }
+  }
+  return result.join('');
+}
+
+// ─── Beaufort ─────────────────────────────────────────────────
+function beaufort(text, key) {
+  if (!key) return text;
+  const keyChars = [...key].filter(ch => /[A-Za-z]/.test(ch));
+  if (!keyChars.length) return text;
+  let ki = 0;
+  return [...text].map(ch => {
+    if (/[A-Za-z]/.test(ch)) {
+      const isUpper = ch === ch.toUpperCase();
+      const base = isUpper ? 65 : 97;
+      const kBase = keyChars[ki % keyChars.length].toUpperCase().charCodeAt(0) - 65;
+      ki++;
+      return String.fromCharCode(((kBase - (ch.toUpperCase().charCodeAt(0) - 65) + 26) % 26) + base);
+    }
+    return ch;
+  }).join('');
+}
+
 // ─── Core process function ────────────────────────────────────
 const MAX_INPUT = 500_000; // ~500 KB — prevent main-thread hang
 
