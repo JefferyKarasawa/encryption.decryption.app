@@ -715,11 +715,13 @@ async function copyToClipboard() {
 // ─── Event Listeners ─────────────────────────────────────────
 inputText.addEventListener('input', process);
 
-cipherSelect.addEventListener('change', () => {
-  cipher = cipherSelect.value;
-  updateKeyUI();
-  process();
-});
+if (cipherSelect) {
+  cipherSelect.addEventListener('change', () => {
+    cipher = cipherSelect.value;
+    updateKeyUI();
+    process();
+  });
+}
 
 caesarKey.addEventListener('input', process);
 vigenereKey.addEventListener('input', process);
