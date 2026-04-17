@@ -184,26 +184,33 @@ function playfairPos(grid, ch) {
 function playfairProcess(text, key, encrypt) {
   const grid = playfairBuildGrid(key || 'KEY');
   const dir = encrypt ? 1 : -1;
-  // Extract latin letters only, remember positions of non-latin for reinsertion
-  const positions = []; // {idx, ch} for non-latin chars in original text
-  const letters = [];
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i].toUpperCase();
-    if (/[A-Z]/.test(ch)) {
-      letters.push(ch === 'J' ? 'I' : ch);
+  // Extract latin letters only; track original case; collect non-latin for append
+  const positions = []; // non-latin chars from original text
+  const letters = [];   // uppercase A-Z (J→I)
+  const letterIsLower = []; // parallel: was the original char lowercase?
+  for (const ch of text) {
+    if (/[A-Za-z]/.test(ch)) {
+      const up = ch.toUpperCase();
+      letters.push(up === 'J' ? 'I' : up);
+      letterIsLower.push(ch >= 'a' && ch <= 'z');
     } else {
-      positions.push({ idx: i, ch: text[i] });
+      positions.push(ch);
     }
   }
-  // Pad bigrams
+  // Pad bigrams; track case for each output slot (null = padding char)
   const bigrams = [];
+  const outputCase = []; // parallel to result array; true=lowercase, false=upper, null=padding
   let i = 0;
   while (i < letters.length) {
     const a = letters[i];
     const b = letters[i + 1];
-    if (b === undefined) { bigrams.push([a, 'X']); i++; }
-    else if (a === b)    { bigrams.push([a, 'X']); i++; }
-    else                 { bigrams.push([a, b]);   i += 2; }
+    if (b === undefined) {
+      bigrams.push([a, 'X']); outputCase.push(letterIsLower[i], null); i++;
+    } else if (a === b) {
+      bigrams.push([a, 'X']); outputCase.push(letterIsLower[i], null); i++;
+    } else {
+      bigrams.push([a, b]); outputCase.push(letterIsLower[i], letterIsLower[i + 1]); i += 2;
+    }
   }
   // Encipher bigrams
   const result = [];
@@ -223,14 +230,9 @@ function playfairProcess(text, key, encrypt) {
     }
     result.push(ca, cb);
   }
-  // Restore original case and reinsert non-latin chars
-  const latinOut = result.map((ch, idx) => {
-    const orig = letters[idx];
-    return orig && orig === orig.toLowerCase() ? ch.toLowerCase() : ch;
-  });
-  // Reinsert non-latin at original positions (adjusted for padding)
-  // Non-latin chars are appended at end since padding shifts indices
-  return latinOut.join('') + positions.map(p => p.ch).join('');
+  // Restore original case; non-latin chars appended (padding shifts indices)
+  const latinOut = result.map((ch, idx) => outputCase[idx] ? ch.toLowerCase() : ch);
+  return latinOut.join('') + positions.join('');
 }
 
 function playfairEncrypt(text, key) { return playfairProcess(text, key, true); }
@@ -253,8 +255,9 @@ function railFenceEncrypt(text, rails) {
 
 function railFenceDecrypt(text, rails) {
   rails = Math.max(2, Math.min(10, rails));
-  if (rails >= text.length) return text;
-  const len = text.length;
+  const chars = [...text]; // code-point array — handles non-BMP Unicode
+  if (rails >= chars.length) return text;
+  const len = chars.length;
   const indices = new Array(len);
   let rail = 0, dir = 1;
   for (let i = 0; i < len; i++) {
@@ -266,10 +269,10 @@ function railFenceDecrypt(text, rails) {
   // Count chars per rail
   const counts = new Array(rails).fill(0);
   for (const r of indices) counts[r]++;
-  // Slice text into rail rows
+  // Slice chars array into rail rows
   const rows = [];
   let pos = 0;
-  for (const c of counts) { rows.push([...text.slice(pos, pos + c)]); pos += c; }
+  for (const c of counts) { rows.push(chars.slice(pos, pos + c)); pos += c; }
   // Read off by original order
   const rowIdx = new Array(rails).fill(0);
   return indices.map(r => rows[r][rowIdx[r]++]).join('');
@@ -280,9 +283,10 @@ function columnarEncrypt(text, key) {
   const k = (key || '').replace(/[^a-zA-Z]/g, '').toUpperCase();
   if (!k) return text;
   const cols = k.length;
-  const rows = Math.ceil(text.length / cols);
+  const codePoints = [...text]; // handle non-BMP Unicode
+  const rows = Math.ceil(codePoints.length / cols);
   // Pad with null char to fill grid
-  const padded = text.padEnd(rows * cols, '\0');
+  const padded = [...codePoints, ...Array(rows * cols - codePoints.length).fill('\0')];
   // Build columns
   const grid = [];
   for (let c = 0; c < cols; c++) {
@@ -299,23 +303,24 @@ function columnarDecrypt(text, key) {
   const k = (key || '').replace(/[^a-zA-Z]/g, '').toUpperCase();
   if (!k) return text;
   const cols = k.length;
-  const rows = Math.ceil(text.length / cols);
+  const codePoints = [...text]; // handle non-BMP Unicode
+  const rows = Math.ceil(codePoints.length / cols);
   const totalCells = rows * cols;
-  const shortCols = totalCells - text.length; // number of columns with rows-1 chars
+  const shortCols = totalCells - codePoints.length; // columns with rows-1 chars
   // Build sorted order
   const order = [...k].map((char, origIdx) => ({ char, origIdx }));
   order.sort((a, b) => a.char < b.char ? -1 : a.char > b.char ? 1 : a.origIdx - b.origIdx);
-  // Assign lengths: last `shortCols` columns in sorted order get rows-1
+  // Assign lengths by original column index (last shortCols original columns are short)
   const lengths = new Array(cols);
   for (let i = 0; i < cols; i++) {
     lengths[order[i].origIdx] = (order[i].origIdx >= cols - shortCols) ? rows - 1 : rows;
   }
-  // Slice text into sorted columns
+  // Slice code-point array into sorted columns
   const sortedCols = [];
   let pos = 0;
   for (const { origIdx } of order) {
     const len = lengths[origIdx];
-    sortedCols.push({ origIdx, chars: [...text.slice(pos, pos + len)] });
+    sortedCols.push({ origIdx, chars: codePoints.slice(pos, pos + len) });
     pos += len;
   }
   // Reorder back to original column positions
