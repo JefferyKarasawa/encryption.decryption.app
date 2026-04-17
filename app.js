@@ -604,8 +604,12 @@ function setMode(m) {
   mode = m;
   encryptBtn.classList.toggle('active', m === 'encrypt');
   decryptBtn.classList.toggle('active', m === 'decrypt');
-  inputTitle.textContent  = m === 'encrypt' ? 'Plaintext'  : 'Ciphertext';
-  outputTitle.textContent = m === 'encrypt' ? 'Ciphertext' : 'Plaintext';
+  inputTitle.textContent  = m === 'encrypt' ? '── PLAINTEXT ──'  : '── CIPHERTEXT ──';
+  outputTitle.textContent = m === 'encrypt' ? '── CIPHERTEXT ──' : '── PLAINTEXT ──';
+  const modeUnderline = document.getElementById('modeUnderline');
+  if (modeUnderline) {
+    modeUnderline.style.transform = m === 'encrypt' ? 'translateX(0)' : 'translateX(100%)';
+  }
   syncMobileNav();
   process();
 }

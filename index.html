@@ -16,6 +16,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -60,162 +61,190 @@
       </div>
     </header>
 
-    <!-- Controls Bar -->
-    <div class="controls-bar">
+    <!-- Body: sidebar + main -->
+    <div class="body-layout">
 
-      <!-- Mode Toggle -->
-      <div class="control-group mode-group">
-        <label class="control-label">Mode</label>
-        <div class="mode-toggle-wrap">
-          <button class="mode-btn active" id="encryptBtn" data-mode="encrypt">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            Encrypt
-          </button>
-          <button class="mode-btn" id="decryptBtn" data-mode="decrypt">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2"/>
-              <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
-            </svg>
-            Decrypt
-          </button>
-        </div>
-      </div>
-
-      <!-- Cipher Select -->
-      <div class="control-group cipher-group">
-        <label class="control-label" for="cipherSelect">Cipher</label>
-        <div class="select-wrap">
-          <select id="cipherSelect" class="styled-select">
-            <option value="caesar">Caesar Cipher</option>
-            <option value="vigenere">Vigenère Cipher</option>
-            <option value="rot13">ROT13</option>
-            <option value="base64">Base64</option>
-            <option value="xor">XOR Cipher</option>
-            <option value="atbash">Atbash Cipher</option>
-          </select>
-          <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </div>
-      </div>
-
-      <!-- Key Input -->
-      <div class="control-group key-group" id="keyGroup">
-        <label class="control-label" id="keyLabel">Shift Key</label>
-        <div class="key-input-wrap">
-          <input type="number" id="caesarKey" class="key-input" min="1" max="85" value="13" placeholder="1–85" />
-          <input type="text"   id="vigenereKey" class="key-input hidden" placeholder="e.g. SECRET" maxlength="64" />
-          <input type="text"   id="xorKey" class="key-input hidden" placeholder="hex, e.g. A3F2" maxlength="16" />
-          <span class="key-badge hidden" id="noKeyBadge">No key needed</span>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Main Panel -->
-    <main class="panels">
-
-      <!-- Input Panel -->
-      <section class="panel panel-input">
-        <div class="panel-header">
-          <span class="panel-title" id="inputTitle">Plaintext</span>
-          <div class="panel-actions">
-            <button class="action-btn" id="clearBtn" title="Clear input">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                <path d="M10 11v6M14 11v6"/>
-                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-              </svg>
-              Clear
-            </button>
-          </div>
-        </div>
-        <textarea
-          id="inputText"
-          class="text-area"
-          placeholder="Type or paste your text here…"
-          spellcheck="false"
-          autocomplete="off"
-        ></textarea>
-        <div class="panel-footer">
-          <span class="char-count">
-            <span id="inputCharCount">0</span> characters
-          </span>
-          <span class="word-count">
-            <span id="inputWordCount">0</span> words
-          </span>
-        </div>
-      </section>
-
-      <!-- Middle Actions -->
-      <div class="middle-actions">
-        <div class="process-indicator" id="processIndicator">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </div>
-        <button class="swap-btn" id="swapBtn" title="Swap input &amp; output">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M7 16V4m0 0L3 8m4-4l4 4"/>
-            <path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
-          </svg>
-          Swap
+      <!-- Cipher Sidebar -->
+      <aside class="cipher-sidebar">
+        <div class="sidebar-group-label">── CLASSICAL ──</div>
+        <button class="cipher-item active" data-cipher="caesar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          Caesar
         </button>
-      </div>
+        <button class="cipher-item" data-cipher="vigenere">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+          Vigenère
+        </button>
+        <button class="cipher-item" data-cipher="rot13">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+          ROT13
+        </button>
+        <button class="cipher-item" data-cipher="atbash">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Atbash
+        </button>
+        <button class="cipher-item" data-cipher="base64">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 3H8a2 2 0 0 0-2 2v2h12V5a2 2 0 0 0-2-2z"/></svg>
+          Base64
+        </button>
+        <button class="cipher-item" data-cipher="xor">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          XOR
+        </button>
+        <button class="cipher-item" data-cipher="playfair">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Playfair
+        </button>
+        <button class="cipher-item" data-cipher="railfence">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 9 12 3 18"/><polyline points="9 6 15 12 9 18"/><polyline points="15 6 21 12 15 18"/></svg>
+          Rail Fence
+        </button>
+        <button class="cipher-item" data-cipher="columnar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="18"/><rect x="3" y="6" width="18" height="12" rx="1"/></svg>
+          Columnar
+        </button>
+        <button class="cipher-item" data-cipher="beaufort">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Beaufort
+        </button>
+        <div class="sidebar-group-label" style="margin-top:0.75rem;">── MODERN ──</div>
+        <button class="cipher-item" data-cipher="aes256gcm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1" fill="currentColor"/></svg>
+          AES-256-GCM
+        </button>
+      </aside>
 
-      <!-- Output Panel -->
-      <section class="panel panel-output">
-        <div class="panel-header">
-          <span class="panel-title" id="outputTitle">Ciphertext</span>
-          <div class="panel-actions">
-            <button class="action-btn" id="copyBtn" title="Copy to clipboard">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-              <span id="copyLabel">Copy</span>
-            </button>
+      <!-- Main content -->
+      <div class="main-content">
+
+        <!-- Mode + Key Parameters bar -->
+        <div class="controls-bar">
+          <!-- Mode Toggle -->
+          <div class="control-group mode-group">
+            <label class="control-label">MODE</label>
+            <div class="mode-toggle-wrap">
+              <button class="mode-btn active" id="encryptBtn" data-mode="encrypt">[ ENCRYPT ]</button>
+              <button class="mode-btn" id="decryptBtn" data-mode="decrypt">[ DECRYPT ]</button>
+              <span class="mode-underline" id="modeUnderline"></span>
+            </div>
+          </div>
+          <!-- Key Parameters -->
+          <div class="control-group key-group" id="keyGroup">
+            <label class="control-label" id="keyLabel">SHIFT (1–85)</label>
+            <div class="key-input-wrap">
+              <input type="number" id="caesarKey"   class="key-input"        min="1" max="85" value="13" placeholder="1–85" />
+              <input type="text"   id="vigenereKey" class="key-input hidden" placeholder="e.g. SECRET"  maxlength="64" />
+              <input type="text"   id="xorKey"      class="key-input hidden" placeholder="hex, e.g. A3F2" maxlength="16" />
+              <input type="text"   id="playfairKey" class="key-input hidden" placeholder="keyword"      maxlength="25" />
+              <input type="number" id="railKey"     class="key-input hidden" min="2" max="10" value="3" placeholder="2–10" />
+              <input type="text"   id="columnarKey" class="key-input hidden" placeholder="keyword"      maxlength="20" />
+              <input type="text"   id="beaufortKey" class="key-input hidden" placeholder="keyword"      maxlength="64" />
+              <!-- AES password group -->
+              <div id="aesKeyWrap" class="aes-key-wrap hidden">
+                <div class="aes-password-row">
+                  <input type="password" id="aesPassword" class="key-input aes-pass" placeholder="password" autocomplete="new-password" />
+                  <button type="button" id="aesToggleBtn" class="aes-toggle" aria-label="Show password">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="aes-strength" id="aesStrengthBar">
+                  <span class="strength-seg"></span>
+                  <span class="strength-seg"></span>
+                  <span class="strength-seg"></span>
+                  <span class="strength-seg"></span>
+                </div>
+              </div>
+              <span class="key-badge hidden" id="noKeyBadge">No key needed</span>
+            </div>
           </div>
         </div>
-        <textarea
-          id="outputText"
-          class="text-area output-area"
-          placeholder="Output will appear here…"
-          readonly
-          spellcheck="false"
-        ></textarea>
-        <div class="panel-footer">
-          <span class="char-count">
-            <span id="outputCharCount">0</span> characters
-          </span>
-          <span class="word-count">
-            <span id="outputWordCount">0</span> words
-          </span>
+
+        <!-- Text Panels -->
+        <main class="panels">
+
+          <!-- Input Panel -->
+          <section class="panel panel-input">
+            <div class="panel-header">
+              <span class="panel-title" id="inputTitle">── PLAINTEXT ──</span>
+              <div class="panel-actions">
+                <button class="action-btn" id="clearBtn" title="Clear input">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    <path d="M10 11v6M14 11v6"/>
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  </svg>
+                  Clear
+                </button>
+              </div>
+            </div>
+            <textarea id="inputText" class="text-area" placeholder="Type or paste your text here…" spellcheck="false" autocomplete="off"></textarea>
+            <div class="panel-footer">
+              <span class="char-count"><span id="inputCharCount">0</span> chars</span>
+              <span class="word-count"><span id="inputWordCount">0</span> words</span>
+            </div>
+          </section>
+
+          <!-- Middle Actions -->
+          <div class="middle-actions">
+            <div class="process-indicator" id="processIndicator">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </div>
+            <button class="swap-btn" id="swapBtn" title="Swap input &amp; output">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M7 16V4m0 0L3 8m4-4l4 4"/>
+                <path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
+              </svg>
+            </button>
+          </div>
+
+          <!-- Output Panel -->
+          <section class="panel panel-output">
+            <div class="panel-header">
+              <span class="panel-title" id="outputTitle">── CIPHERTEXT ──</span>
+              <div class="panel-actions">
+                <button class="action-btn" id="copyBtn" title="Copy to clipboard">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  <span id="copyLabel">Copy</span>
+                </button>
+              </div>
+            </div>
+            <textarea id="outputText" class="text-area output-area" placeholder="Output will appear here…" readonly spellcheck="false"></textarea>
+            <div class="panel-footer">
+              <span class="char-count"><span id="outputCharCount">0</span> chars</span>
+              <span class="word-count"><span id="outputWordCount">0</span> words</span>
+            </div>
+          </section>
+
+        </main>
+
+        <!-- Info Bar -->
+        <div class="info-bar" id="infoBar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span id="cipherInfo">Caesar Cipher shifts each character within its script.</span>
         </div>
-      </section>
 
-    </main>
+        <!-- Footer -->
+        <footer class="app-footer">
+          <span>All processing is done locally. Nothing is sent to any server.</span>
+        </footer>
 
-    <!-- Info Bar -->
-    <div class="info-bar" id="infoBar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-      <span id="cipherInfo">Caesar Cipher shifts each character within its script. Supports Latin (26), Hiragana/Katakana (86), and Kanji (20,992 chars). Non-script characters pass through unchanged.</span>
-    </div>
+      </div><!-- /.main-content -->
+    </div><!-- /.body-layout -->
 
-    <!-- Footer (desktop only) -->
-    <footer class="app-footer">
-      <span>All processing is done locally. Nothing is sent to any server.</span>
-    </footer>
-
-  </div>
+  </div><!-- /.app-wrapper -->
 
   <!-- Mobile Bottom Nav -->
   <nav class="mobile-nav" id="mobileNav">
