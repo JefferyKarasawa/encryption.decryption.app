@@ -521,7 +521,7 @@ function process() {
 }
 
 // ─── AES async handler ────────────────────────────────────────
-let _aesVersion = 0; // incremented each call; stale completions are discarded
+let _aesController = null; // cancelled when a newer call supersedes this one
 
 async function processAES() {
   const text = inputText.value;
@@ -533,7 +533,10 @@ async function processAES() {
     return;
   }
 
-  const myVersion = ++_aesVersion;
+  _aesController?.abort();
+  _aesController = new AbortController();
+  const { signal } = _aesController;
+
   processIndicator.classList.add('spinning');
   outputText.value = '⟳ Processing…';
 
@@ -541,12 +544,12 @@ async function processAES() {
     const result = mode === 'encrypt'
       ? await aesEncrypt(text, password)
       : await aesDecrypt(text, password);
-    if (myVersion !== _aesVersion) return; // stale — a newer call supersedes this one
+    if (signal.aborted) return;
     outputText.value = result;
     flashOutput(false, false);
     updateCounts(text, result);
   } catch (err) {
-    if (myVersion !== _aesVersion) return;
+    if (signal.aborted) return;
     let msg;
     if (err.message === 'NO_SECURE_CONTEXT') msg = '⚠ AES requires a secure context (HTTPS or localhost)';
     else if (err.message === 'WRONG_PASSWORD') msg = '⚠ Decryption failed — wrong password or corrupted data';
@@ -555,7 +558,7 @@ async function processAES() {
     flashOutput(true, false);
     updateCounts(text, msg);
   } finally {
-    if (myVersion === _aesVersion) {
+    if (!signal.aborted) {
       processIndicator.classList.remove('spinning');
       processIndicator.classList.toggle('active', text.length > 0);
     }
